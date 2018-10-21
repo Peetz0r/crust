@@ -76,7 +76,7 @@ static struct device axp803_regulator = {
 		[AXP803_REGL_DCDC2] = 1100,
 		[AXP803_REGL_DCDC3] = 1100,
 		/* DCDC4 is not connected. */
-		[AXP803_REGL_DCDC5] = 1500,
+		[AXP803_REGL_DCDC5] = CONFIG_DRAM_VOLTAGE,
 		[AXP803_REGL_DCDC6] = 1100,
 		/* DC1SW is not connected. */
 		[AXP803_REGL_ALDO1] = 2800,
