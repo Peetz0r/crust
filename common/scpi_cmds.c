@@ -7,12 +7,9 @@
 #include <css.h>
 #include <debug.h>
 #include <dm.h>
-#include <dvfs.h>
 #include <error.h>
-#include <monitoring.h>
 #include <regulator.h>
 #include <scpi.h>
-#include <sensor.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

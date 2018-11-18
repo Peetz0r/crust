@@ -19,7 +19,6 @@
 #include <regulator/axp803.h>
 #include <regulator/sy8106a.h>
 #include <rsb/sunxi-rsb.h>
-#include <sensor/sun8i-thermal.h>
 #include <timer/sun8i-r_timer.h>
 #include <watchdog/sunxi-twd.h>
 #include <platform/ccu.h>
@@ -33,7 +32,7 @@ static struct device axp803_pmic __device;
 #if CONFIG_REGULATOR_AXP803
 static struct device axp803_regulator __device;
 #endif
-static struct device ccu  __device;
+static struct device ccu __device;
 #if !CONFIG_PMIC_AXP803
 static struct device dummy_pmic __device;
 #endif
@@ -55,7 +54,6 @@ static struct device r_twd    __device;
 #if CONFIG_REGULATOR_SY8106A
 static struct device sy8106a __device;
 #endif
-static struct device ths __device;
 
 #if CONFIG_PMIC_AXP803
 static struct device axp803_pmic = {
@@ -116,35 +114,6 @@ static struct device ccu = {
 			},
 			.gate  = CCU_GATE_MSGBOX,
 			.reset = CCU_RESET_MSGBOX,
-		},
-		[CCU_CLOCK_PIO] = {
-			.info = {
-				.name  = "pio",
-				.flags = CLK_FIXED,
-			},
-			.gate  = CCU_GATE_PIO,
-			.reset = CCU_RESET_PIO,
-		},
-		[CCU_CLOCK_THS] = {
-			.info = {
-				.name  = "ths",
-				.flags = CLK_FIXED,
-			},
-			.gate  = CCU_GATE_THS,
-			.reset = CCU_RESET_THS,
-		},
-		[CCU_CLOCK_THS_MOD] = {
-			.info = {
-				.name     = "ths_mod",
-				.max_rate = 6000000,
-			},
-			.parents = CLOCK_PARENTS(4) {
-				{ .dev = &r_ccu, .id = R_CCU_CLOCK_OSC24M },
-			},
-			.gate = BITMAP_INDEX(CCU_CLOCK_THS_REG / 4, 31),
-			.reg  = CCU_CLOCK_THS_REG,
-			.mux  = BITFIELD(24, 2),
-			.p    = BITFIELD(0, 2),
 		},
 	},
 	.subdev_count = CCU_CLOCK_COUNT,
@@ -367,13 +336,3 @@ static struct device sy8106a = {
 	.addr    = SY8106A_I2C_ADDRESS,
 };
 #endif
-
-static struct device ths = {
-	.name   = "ths",
-	.regs   = DEV_THS,
-	.drv    = &sun8i_thermal_driver.drv,
-	.clocks = CLOCK_PARENTS(2) {
-		{ .dev = &ccu, .id = CCU_CLOCK_THS },
-		{ .dev = &ccu, .id = CCU_CLOCK_THS_MOD },
-	},
-};
