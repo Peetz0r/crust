@@ -5,6 +5,7 @@ env:
     - BOARD=orangepi_win
     - BOARD=orangepi_zero_plus
     - BOARD=pine64_plus
+    - BOARD=pinebook
 
 language: c
 
