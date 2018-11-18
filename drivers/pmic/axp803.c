@@ -41,6 +41,10 @@ axp803_pmic_irq(void *param)
 	int     err;
 	uint8_t reg;
 
+	/* Send NMIs to Linux while it is running. */
+	if (!(system_is_off() || system_is_suspended()))
+		return EBUSY;
+
 	/* IRQ register 5 is the only one with enabled IRQs. */
 	if ((err = rsb_read(dev->bus, dev->addr, IRQ_STATUS_REG5, &reg)))
 		panic("%s: Cannot read NMI status: %d", dev->name, err);
