@@ -49,7 +49,7 @@ sunxi_gpio_enable(struct device *dev, struct irq_handle *handle)
 	return SUCCESS;
 }
 
-static void
+static int
 sunxi_gpio_irq(void *param)
 {
 	struct device *dev = param;
@@ -78,6 +78,8 @@ sunxi_gpio_irq(void *param)
 		/* Clear the handled pending IRQs for this port. */
 		mmio_write32(dev->regs + INT_STATUS_REG(port), reg);
 	}
+
+	return SUCCESS;
 }
 
 static int

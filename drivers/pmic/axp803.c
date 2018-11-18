@@ -34,7 +34,7 @@
 #define POK_CTRL_REG      0x59
 #define PIN_FUNCTION_REG  0x8f
 
-static void
+static int
 axp803_pmic_irq(void *param)
 {
 	struct device *dev = param;
@@ -52,6 +52,8 @@ axp803_pmic_irq(void *param)
 		system_reset();
 	else
 		system_wakeup();
+
+	return SUCCESS;
 }
 
 static int

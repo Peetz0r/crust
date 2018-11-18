@@ -140,7 +140,7 @@ sunxi_msgbox_handle_msg(struct device *dev, uint8_t chan, uint32_t msg)
 	debug("%s: %u: Unsolicited message 0x%08x", dev->name, chan, msg);
 }
 
-static void
+static int
 sunxi_msgbox_irq(void *param)
 {
 	struct device *dev = param;
@@ -157,6 +157,8 @@ sunxi_msgbox_irq(void *param)
 		/* Clear the pending interrupt once the FIFO is empty. */
 		mmio_write32(dev->regs + IRQ_STATUS_REG, RX_IRQ(chan));
 	}
+
+	return SUCCESS;
 }
 
 static int

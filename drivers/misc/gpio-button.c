@@ -5,13 +5,16 @@
 
 #include <compiler.h>
 #include <dm.h>
+#include <error.h>
 #include <system_power.h>
 #include <misc/gpio-button.h>
 
-static void
+static int
 gpio_button_irq(void *param __unused)
 {
 	system_wakeup();
+
+	return SUCCESS;
 }
 
 static int

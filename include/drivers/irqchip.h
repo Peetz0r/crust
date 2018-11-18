@@ -9,17 +9,18 @@
 #include <dm.h>
 #include <intrusive.h>
 #include <stdint.h>
-#include <work.h>
 
 #define IRQCHIP_OPS(dev) \
 	(&container_of((dev)->drv, struct irqchip_driver, drv)->ops)
 
 #define IRQ_HANDLE &(struct irq_handle)
 
+typedef int irq_callback_t (void *);
+
 struct irq_handle {
 	struct irq_handle *next;
 	struct device     *dev;
-	callback_t        *fn;
+	irq_callback_t    *fn;
 	const uint8_t      irq;
 	const uint8_t      mode;
 };

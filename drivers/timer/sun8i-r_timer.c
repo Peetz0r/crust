@@ -53,7 +53,7 @@ sun8i_r_timer_set_timeout(struct device *dev, uint32_t timeout)
 	return SUCCESS;
 }
 
-void
+static int
 sun8i_r_timer_irq(void *param)
 {
 	struct device *dev = param;
@@ -63,6 +63,8 @@ sun8i_r_timer_irq(void *param)
 	mmio_write32(dev->regs + IRQ_STATUS_REG, BIT(index));
 
 	timer_tick();
+
+	return SUCCESS;
 }
 
 static int
