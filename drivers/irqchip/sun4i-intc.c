@@ -6,6 +6,7 @@
 #include <debug.h>
 #include <dm.h>
 #include <error.h>
+#include <irq_forward.h>
 #include <mmio.h>
 #include <spr.h>
 #include <util.h>
@@ -50,6 +51,9 @@ sun4i_intc_irq(struct device *dev)
 			break;
 		handle = handle->next;
 	}
+	/* If no callback could handle the iRQ, forward it to Linux. */
+	if (handle == NULL)
+		forward_irq(irq);
 
 	/* Clear the IRQ pending status. */
 	mmio_setbits32(dev->regs + INTC_IRQ_PEND_REG, BIT(irq));

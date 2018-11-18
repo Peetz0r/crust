@@ -7,6 +7,7 @@
 #include <console.h>
 #include <debug.h>
 #include <dm.h>
+#include <irq_forward.h>
 #include <monitoring.h>
 #include <scpi.h>
 #include <stdbool.h>
@@ -26,6 +27,7 @@ main(void)
 
 	console_init(DEV_UART0);
 	dm_init();
+	irq_forward_init();
 	start_monitoring();
 
 	/* Enable watchdog. */
