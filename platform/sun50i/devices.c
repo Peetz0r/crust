@@ -7,7 +7,6 @@
 #include <dm.h>
 #include <util.h>
 #include <clock/sunxi-ccu.h>
-#include <dvfs/cpux.h>
 #include <gpio/sunxi-gpio.h>
 #include <i2c/sun6i-a31-i2c.h>
 #include <irqchip/sun4i-intc.h>
@@ -35,7 +34,6 @@ static struct device axp803_pmic __device;
 static struct device axp803_regulator __device;
 #endif
 static struct device ccu  __device;
-static struct device cpux __device;
 #if !CONFIG_PMIC_AXP803
 static struct device dummy_pmic __device;
 #endif
@@ -150,19 +148,6 @@ static struct device ccu = {
 		},
 	},
 	.subdev_count = CCU_CLOCK_COUNT,
-};
-
-static struct device cpux = {
-	.name = "cpux",
-	.regs = DEV_CCU,
-	.drv  = &cpux_driver.drv,
-#if CONFIG_REGULATOR_AXP803
-	.supplydev = &axp803_regulator,
-	.supply    = AXP803_REGL_DCDC2,
-#elif CONFIG_REGULATOR_SY8106A
-	.supplydev = &sy8106a,
-	.supply    = SY8106A_REGL_VOUT,
-#endif
 };
 
 #if !CONFIG_PMIC_AXP803
