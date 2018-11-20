@@ -6,5 +6,3 @@ CONFIG_SOC_H5=1
 # CONFIG_GPIO_BUTTON is not defined
 # CONFIG_GPIO_BUTTON_PIN is not defined
 # CONFIG_PMIC_AXP803 is not defined
-# CONFIG_REGULATOR_AXP803 is not defined
-# CONFIG_REGULATOR_SY8106A is not defined

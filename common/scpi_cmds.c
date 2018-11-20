@@ -8,7 +8,6 @@
 #include <debug.h>
 #include <dm.h>
 #include <error.h>
-#include <regulator.h>
 #include <scpi.h>
 #include <stdbool.h>
 #include <stddef.h>

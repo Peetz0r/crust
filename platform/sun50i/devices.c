@@ -15,9 +15,6 @@
 #include <misc/gpio-button.h>
 #include <msgbox/sunxi-msgbox.h>
 #include <pmic/axp803.h>
-#include <pmic/dummy.h>
-#include <regulator/axp803.h>
-#include <regulator/sy8106a.h>
 #include <rsb/sunxi-rsb.h>
 #include <timer/sun8i-r_timer.h>
 #include <watchdog/sunxi-twd.h>
@@ -29,13 +26,7 @@
 #if CONFIG_PMIC_AXP803
 static struct device axp803_pmic __device;
 #endif
-#if CONFIG_REGULATOR_AXP803
-static struct device axp803_regulator __device;
-#endif
-static struct device ccu __device;
-#if !CONFIG_PMIC_AXP803
-static struct device dummy_pmic __device;
-#endif
+static struct device ccu    __device;
 static struct device msgbox __device;
 #if CONFIG_GPIO_BUTTON
 static struct device power_button __device;
@@ -51,9 +42,6 @@ static struct device r_rsb __device;
 #endif
 static struct device r_timer0 __device;
 static struct device r_twd    __device;
-#if CONFIG_REGULATOR_SY8106A
-static struct device sy8106a __device;
-#endif
 
 #if CONFIG_PMIC_AXP803
 static struct device axp803_pmic = {
@@ -65,38 +53,6 @@ static struct device axp803_pmic = {
 		.dev = &r_intc,
 		.irq = IRQ_NMI,
 	},
-};
-#endif
-
-#if CONFIG_REGULATOR_AXP803
-static struct device axp803_regulator = {
-	.name    = "axp803-regulator",
-	.drv     = &axp803_regulator_driver.drv,
-	.drvdata = AXP803_DRVDATA {
-		[AXP803_REGL_DCDC1] = 3300,
-		[AXP803_REGL_DCDC2] = 1100,
-		[AXP803_REGL_DCDC3] = 1100,
-		/* DCDC4 is not connected. */
-		[AXP803_REGL_DCDC5] = CONFIG_DRAM_VOLTAGE,
-		[AXP803_REGL_DCDC6] = 1100,
-		[AXP803_REGL_DC1SW] = CONFIG_REGULATOR_AXP803_DC1SW,
-		[AXP803_REGL_ALDO1] = 2800,
-		[AXP803_REGL_ALDO2] = 3300,
-		[AXP803_REGL_ALDO3] = 3000,
-		[AXP803_REGL_DLDO1] = 3300,
-		[AXP803_REGL_DLDO2] = CONFIG_REGULATOR_AXP803_DLDO2,
-		[AXP803_REGL_DLDO3] = CONFIG_REGULATOR_AXP803_DLDO3,
-		[AXP803_REGL_DLDO4] = 3300,
-		[AXP803_REGL_ELDO1] = 1800,
-		/* ELDO2 is not connected. */
-		[AXP803_REGL_ELDO3] = 1800,
-		[AXP803_REGL_FLDO1] = 1200,
-		[AXP803_REGL_FLDO2] = 1100,
-		[AXP803_REGL_GPIO0] = CONFIG_REGULATOR_AXP803_GPIO0,
-		/* GPIO1 is not connected. */
-	},
-	.bus  = &r_rsb,
-	.addr = AXP803_RSB_RTADDR,
 };
 #endif
 
@@ -118,17 +74,6 @@ static struct device ccu = {
 	},
 	.subdev_count = CCU_CLOCK_COUNT,
 };
-
-#if !CONFIG_PMIC_AXP803
-static struct device dummy_pmic = {
-	.name = "dummy-pmic",
-	.drv  = &dummy_pmic_driver.drv,
-#if CONFIG_REGULATOR_SY8106A
-	.supplydev = &sy8106a,
-	.supply    = SY8106A_REGL_VOUT,
-#endif
-};
-#endif
 
 static struct device msgbox = {
 	.name    = "msgbox",
@@ -326,13 +271,3 @@ static struct device r_twd = {
 		.irq = IRQ_R_TWD,
 	},
 };
-
-#if CONFIG_REGULATOR_SY8106A
-static struct device sy8106a = {
-	.name    = "sy8106a",
-	.drv     = &sy8106a_driver.drv,
-	.drvdata = 1100, /**< Default CPU voltage. */
-	.bus     = &r_i2c,
-	.addr    = SY8106A_I2C_ADDRESS,
-};
-#endif
