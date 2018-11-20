@@ -20,7 +20,7 @@
 #include <platform/memory.h>
 #include <platform/time.h>
 
-#define SCPI_BUFFER_MAX  2
+#define SCPI_BUFFER_MAX  1
 
 #define SCPI_MEM_AREA(n) (((struct scpi_mem *)SCPI_MEM_BASE)[n])
 
@@ -207,7 +207,7 @@ scpi_receive_message(struct device *dev __unused, uint8_t client, uint32_t msg)
 	struct scpi_buffer *buffer;
 	struct scpi_msg    *rx_msg = &SCPI_MEM_AREA(client).rx_msg;
 
-	assert(client == SCPI_CLIENT_NS || client == SCPI_CLIENT_SECURE);
+	assert(client == SCPI_CLIENT_SECURE);
 
 	/* Do not try to parse messages sent with a different protocol. */
 	if (msg != SCPI_VIRTUAL_CHANNEL)
@@ -239,11 +239,6 @@ scpi_init(void)
 
 	if ((scpi_msgbox = dm_first_dev_by_class(DM_CLASS_MSGBOX)) == NULL)
 		panic("SCPI: No message box device");
-	/* Non-secure client channel. */
-	if ((err = msgbox_enable(scpi_msgbox, SCPI_CLIENT_NS,
-	                         scpi_receive_message)))
-		panic("SCPI.%u: Error registering handler: %d",
-		      SCPI_CLIENT_NS, err);
 	/* Secure client channel. */
 	if ((err = msgbox_enable(scpi_msgbox, SCPI_CLIENT_SECURE,
 	                         scpi_receive_message)))

@@ -16,9 +16,8 @@
  * can coordinate with the secure OS (if present). These requests must only be
  * allowed if they arrive on the "secure" channel.
  */
-#define SCPI_CLIENTS       2
-#define SCPI_CLIENT_NS     0 /**< Client 0: Linux (nonsecure). */
-#define SCPI_CLIENT_SECURE 1 /**< Client 1: ATF (secure). */
+#define SCPI_CLIENTS       1
+#define SCPI_CLIENT_SECURE 0 /**< Client 0: ATF (secure). */
 
 /**
  * Create and send an SCPI message. This is used for commands initiated by the
