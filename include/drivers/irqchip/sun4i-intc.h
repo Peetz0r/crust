@@ -8,6 +8,8 @@
 
 #include <irqchip.h>
 
+#define SUN4I_INTC_NUM_IRQS 32
+
 extern const struct irqchip_driver sun4i_intc_driver;
 
 void sun4i_intc_irq(struct device *dev);

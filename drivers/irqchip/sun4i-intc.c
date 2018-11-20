@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
  */
 
+#include <debug.h>
 #include <dm.h>
 #include <error.h>
 #include <mmio.h>
@@ -27,6 +28,8 @@ sun4i_intc_enable(struct device *dev, struct irq_handle *handle)
 	/* Prepend the handle onto the list of IRQs. */
 	handle->next = HANDLE_LIST(dev);
 	dev->drvdata = (uintptr_t)handle;
+
+	assert(handle->irq < SUN4I_INTC_NUM_IRQS);
 
 	/* Enable the IRQ. */
 	mmio_setbits32(dev->regs + INTC_EN_REG, BIT(handle->irq));
