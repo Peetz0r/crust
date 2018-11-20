@@ -68,6 +68,9 @@ sun4i_intc_probe(struct device *dev)
 	mmio_write32(dev->regs + INTC_MASK_REG, 0);
 	mmio_write32(dev->regs + INTC_IRQ_PEND_REG, ~0);
 
+	/* Set the NMI to level triggered, active low. */
+	mmio_write32(dev->regs + INTC_NMI_CTRL_REG, 0);
+
 	/* Enable the CPU external interrupt input. */
 	mtspr(SPR_SYS_SR_ADDR, SPR_SYS_SR_IEE_SET(mfspr(SPR_SYS_SR_ADDR), 1));
 
