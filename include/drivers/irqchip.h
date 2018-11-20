@@ -27,6 +27,8 @@ struct irq_handle {
 
 struct irqchip_driver_ops {
 	int (*enable)(struct device *dev, struct irq_handle *handle);
+	int (*mask)(struct device *dev, uint8_t id);
+	int (*unmask)(struct device *dev, uint8_t id);
 };
 
 struct irqchip_driver {
@@ -38,6 +40,18 @@ static inline int
 irqchip_enable(struct device *dev, struct irq_handle *handle)
 {
 	return IRQCHIP_OPS(dev)->enable(dev, handle);
+}
+
+static inline int
+irqchip_mask(struct device *dev, uint8_t id)
+{
+	return IRQCHIP_OPS(dev)->mask(dev, id);
+}
+
+static inline int
+irqchip_unmask(struct device *dev, uint8_t id)
+{
+	return IRQCHIP_OPS(dev)->unmask(dev, id);
 }
 
 #endif /* DRIVERS_IRQCHIP_H */

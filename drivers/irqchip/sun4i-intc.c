@@ -56,6 +56,28 @@ sun4i_intc_irq(struct device *dev)
 }
 
 static int
+sun4i_intc_mask(struct device *dev, uint8_t id)
+{
+	if (id >= SUN4I_INTC_NUM_IRQS)
+		return EINVAL;
+
+	mmio_setbits32(dev->regs + INTC_MASK_REG, BIT(id));
+
+	return SUCCESS;
+}
+
+static int
+sun4i_intc_unmask(struct device *dev, uint8_t id)
+{
+	if (id >= SUN4I_INTC_NUM_IRQS)
+		return EINVAL;
+
+	mmio_clearbits32(dev->regs + INTC_MASK_REG, BIT(id));
+
+	return SUCCESS;
+}
+
+static int
 sun4i_intc_probe(struct device *dev)
 {
 	/* Clear the table base address (just return IRQ numbers). */
@@ -82,5 +104,7 @@ const struct irqchip_driver sun4i_intc_driver = {
 	},
 	.ops = {
 		.enable = sun4i_intc_enable,
+		.mask   = sun4i_intc_mask,
+		.unmask = sun4i_intc_unmask,
 	},
 };

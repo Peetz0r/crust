@@ -83,6 +83,12 @@ sunxi_gpio_irq(void *param)
 }
 
 static int
+sunxi_gpio_irqchip_noop(struct device *dev __unused, uint8_t id __unused)
+{
+	return SUCCESS;
+}
+
+static int
 sunxi_gpio_irqchip_probe(struct device *dev)
 {
 	int err;
@@ -106,5 +112,7 @@ const struct irqchip_driver sunxi_gpio_irqchip_driver = {
 	},
 	.ops = {
 		.enable = sunxi_gpio_enable,
+		.mask   = sunxi_gpio_irqchip_noop,
+		.unmask = sunxi_gpio_irqchip_noop,
 	},
 };
