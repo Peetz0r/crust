@@ -37,10 +37,12 @@ COMMON_CFLAGS	 = -Os -pipe -std=c11 \
 		   -Werror=vla \
 		   -Wno-missing-field-initializers
 COMMON_CPPFLAGS	 = -I$(OBJ)/include \
-		   -I$(SRC)/include/lib
+		   -I$(SRC)/include \
+		   -I$(SRC)/include/platform/$(CONFIG_PLATFORM)
 
 AFLAGS		 = -Wa,--fatal-warnings
 CFLAGS		 = $(COMMON_CFLAGS) \
+		   -ffixed-r2 \
 		   -ffreestanding \
 		   -flto \
 		   -fno-asynchronous-unwind-tables \
@@ -51,10 +53,8 @@ CFLAGS		 = $(COMMON_CFLAGS) \
 		   $(if $(HAVE_GCC9),-msext -msfimm -mshftimm) \
 		   -static
 CPPFLAGS	 = $(COMMON_CPPFLAGS) \
-		   -I$(SRC)/include/common \
-		   -I$(SRC)/include/drivers \
-		   -I$(SRC)/include/stdlib \
-		   -I$(SRC)/platform/$(CONFIG_PLATFORM)/include \
+		   -I$(SRC)/include/freestanding \
+		   -include compiler.h \
 		   -include config.h \
 		   -nostdinc \
 		   -Werror=missing-include-dirs
@@ -90,7 +90,7 @@ endif
 include $(SRC)/scripts/Makefile.format
 include $(SRC)/scripts/Makefile.kbuild
 
-$(call descend,3rdparty common drivers lib platform scripts tools)
+$(call descend,3rdparty common drivers tools)
 
 ###############################################################################
 

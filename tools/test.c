@@ -18,13 +18,14 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#include <barrier.h>
 #include <compiler.h>
 #include <config.h>
+#include <devices.h>
+#include <memory.h>
 #include <mmio.h>
-#include <scpi_protocol.h>
+#include <scpi.h>
 #include <util.h>
-#include <platform/devices.h>
-#include <platform/memory.h>
 
 /* SCPI device (clock/power supply) flags. */
 #define FLAG_READABLE               BIT(0)
@@ -131,12 +132,6 @@ struct scpi_call_times {
 	struct timespec finish;      /**< After all processing is complete. */
 };
 
-/** A structure representing the shared memory area used for SCPI. */
-struct scpi_mem {
-	struct scpi_msg rx_msg; /**< The reply sent by the server. */
-	struct scpi_msg tx_msg; /**< The request sent by a client. */
-};
-
 /** Context for returning to the main program on failure. */
 static sigjmp_buf main_buf;
 /** Context for continuing with the next test on failure. */
@@ -226,7 +221,7 @@ static unsigned long tests_passed;
 /**
  * Get the number of set bits in a bitmap.
  */
-static unsigned __const
+static unsigned constfn
 bitmap_weight(unsigned long bits)
 {
 	return __builtin_popcount(bits);
@@ -1047,8 +1042,8 @@ try_sys_power(void)
 int
 main(int argc, char *argv[])
 {
-	void *mbox_map, *sram_map;
 	int fd;
+	void *mbox_map, *sram_map;
 
 	static_assert(sizeof(struct scpi_msg) == SCPI_MESSAGE_SIZE,
 	              "struct scpi_msg does not have the correct size");

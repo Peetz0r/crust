@@ -4,129 +4,155 @@
  */
 
 #include <debug.h>
-#include <dm.h>
-#include <error.h>
-#include <pmic.h>
-#include <rsb.h>
-#include <system_power.h>
-#include <mfd/axp803.h>
-#include <pmic/axp803.h>
+#include <delay.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <system.h>
+#include <util.h>
+#include <drivers/rsb/r_rsb.h>
 
-#define IRQ_ENABLE_REG1   0x40
-#define IRQ_ENABLE_REG5   0x44
-#define IRQ_ENABLE_REG6   0x45
-#define IRQ_STATUS_REG1   0x48
-#define IRQ_STATUS_REG5   0x4c
-#define IRQ_STATUS_REG6   0x4d
+#include "axp803.h"
 
-#define GPIO0IRQ          BIT(0) /**< GPIO0 input edge. */
-#define GPIO1IRQ          BIT(1) /**< GPIO1 input edge. */
-#define POKOIRQ           BIT(2) /**< Power key power-off duration. */
-#define POKLIRQ           BIT(3) /**< Power key long duration. */
-#define POKSIRQ           BIT(4) /**< Power key short duration. */
-#define POKNIRQ           BIT(5) /**< Power key negative edge. */
-#define POKPIRQ           BIT(6) /**< Power key positive edge. */
-#define EVENTIRQ          BIT(7) /**< Event timeout. */
-#define WANTED_IRQS       (POKLIRQ | POKPIRQ)
+#define AXP803_MODE_REG   0x3e
+#define AXP803_MODE_VAL   0x7c
 
-#define WAKEUP_CTRL_REG   0x31
-#define POWER_DISABLE_REG 0x32
-#define POK_CTRL_REG      0x59
-#define PIN_FUNCTION_REG  0x8f
+#define AXP803_RSB_HWADDR 0x03a3
+#define AXP803_RSB_RTADDR 0x2d
+
+enum {
+	POWER_SRC_STAT_REG = 0x00,
+	POWER_CHG_STAT_REG = 0x01,
+	ON_OFF_CTRL_REG1   = 0x10,
+	ON_OFF_CTRL_REG2   = 0x12,
+	ON_OFF_CTRL_REG3   = 0x13,
+	WAKEUP_CTRL_REG    = 0x31,
+	POWER_DISABLE_REG  = 0x32,
+	POWER_KEY_CTRL_REG = 0x36,
+	IRQ_EN_REG1        = 0x40,
+	IRQ_EN_REG2        = 0x41,
+	IRQ_EN_REG3        = 0x42,
+	IRQ_EN_REG4        = 0x43,
+	IRQ_EN_REG5        = 0x44,
+	IRQ_EN_REG6        = 0x45,
+	IRQ_STAT_REG1      = 0x48,
+	IRQ_STAT_REG2      = 0x49,
+	IRQ_STAT_REG3      = 0x4a,
+	IRQ_STAT_REG4      = 0x4b,
+	IRQ_STAT_REG5      = 0x4c,
+	IRQ_STAT_REG6      = 0x4d,
+	FUNCTION_CTRL_REG  = 0x8f,
+};
+
+static uint8_t saved_irq_enable[6];
 
 static void
-axp803_pmic_irq(void *param)
+axp803_clr_8(uint8_t addr, uint8_t clr)
 {
-	struct device *dev = param;
-	uint8_t reg;
-	int err;
+	uint8_t val = r_rsb_read(AXP803_RSB_RTADDR, addr);
 
-	/* IRQ register 5 is the only one with enabled IRQs. */
-	if ((err = rsb_read(dev->bus, dev->addr, IRQ_STATUS_REG5, &reg)))
-		panic("%s: Cannot read NMI status: %d", dev->name, err);
-	if ((err = rsb_write(dev->bus, dev->addr, IRQ_STATUS_REG5, reg)))
-		panic("%s: Cannot clear NMI 0x%02x: %d", dev->name, reg, err);
-
-	/* Reset on long press, otherwise wake the system. */
-	if (reg & POKLIRQ)
-		system_reset();
-	else
-		system_wakeup();
+	r_rsb_write(AXP803_RSB_RTADDR, addr, val & ~clr);
 }
 
-static int
-axp803_pmic_reset(struct device *dev)
+static void
+axp803_set_8(uint8_t addr, uint8_t set)
+{
+	uint8_t val = r_rsb_read(AXP803_RSB_RTADDR, addr);
+
+	r_rsb_write(AXP803_RSB_RTADDR, addr, val | set);
+}
+
+noreturn void
+axp803_reset(void)
 {
 	/* Trigger soft power restart. */
-	return axp803_reg_setbits(dev, WAKEUP_CTRL_REG, BIT(6));
+	axp803_set_8(WAKEUP_CTRL_REG, BIT(6));
+
+	/* In case this fails for some reason, reset the firmware. */
+	reset();
 }
 
-static int
-axp803_pmic_shutdown(struct device *dev)
-{
-	/* Trigger soft power off. */
-	return axp803_reg_setbits(dev, POWER_DISABLE_REG, BIT(7));
-}
-
-static int
-axp803_pmic_suspend(struct device *dev)
-{
-	/* Enable wakeup, allow IRQs during suspend. */
-	return axp803_reg_setbits(dev, WAKEUP_CTRL_REG, BIT(4) | BIT(3));
-}
-
-static int
-axp803_pmic_wakeup(struct device *dev)
+void
+axp803_resume(void)
 {
 	/* Trigger soft power wakeup. */
-	return axp803_reg_setbits(dev, WAKEUP_CTRL_REG, BIT(5));
+	axp803_set_8(WAKEUP_CTRL_REG, BIT(5));
+
+	/* Wait an arbitrary 250ms for the the power rails to come back up. */
+	udelay(250000);
+
+	/* Restore runtime IRQ settings. */
+	for (uint8_t i = 0; i < 6; ++i) {
+		uint8_t addr = IRQ_EN_REG1 + i;
+		r_rsb_write(AXP803_RSB_RTADDR, addr, saved_irq_enable[i]);
+	}
 }
 
-static int
-axp803_pmic_probe(struct device *dev)
+noreturn void
+axp803_shutdown(void)
 {
-	struct device *bus = dev->bus;
-	uint8_t addr       = dev->addr;
-	int err;
+	/* Trigger soft power off. */
+	axp803_set_8(POWER_DISABLE_REG, BIT(7));
 
-	if ((err = axp803_init_once(dev)))
-		return err;
+	/* In case this fails for some reason, reset the firmware. */
+	reset();
+}
 
-	/* Set up the power button. */
-	if ((err = rsb_write(bus, addr, POK_CTRL_REG, BIT(4))))
-		return err;
-
-	/* Set up IRQs; disable all but the relevant ones. */
-	for (uint8_t reg = IRQ_ENABLE_REG1; reg <= IRQ_ENABLE_REG6; ++reg) {
-		uint8_t data = reg == IRQ_ENABLE_REG5 ? WANTED_IRQS : 0;
-		if ((err = rsb_write(bus, addr, reg, data)))
-			return err;
+void
+axp803_suspend(void)
+{
+	/* Save the runtime IRQ settings; disable IRQs except the power key. */
+	for (uint8_t i = 0; i < 6; ++i) {
+		uint8_t addr = IRQ_EN_REG1 + i;
+		uint8_t data = addr == IRQ_EN_REG5 ? BIT(5) : 0;
+		saved_irq_enable[i] = r_rsb_read(AXP803_RSB_RTADDR, addr);
+		r_rsb_write(AXP803_RSB_RTADDR, addr, data);
 	}
 
-	/* Now clear all IRQs. */
-	for (uint8_t reg = IRQ_STATUS_REG1; reg <= IRQ_STATUS_REG6; ++reg) {
-		if ((err = rsb_write(bus, addr, reg, GENMASK(7, 0))))
-			return err;
+	/* Prevent automatic wakeup on IRQ. */
+	axp803_clr_8(FUNCTION_CTRL_REG, BIT(7));
+
+	/* Allow IRQs during suspend; enter suspend. */
+	axp803_set_8(WAKEUP_CTRL_REG, BIT(4) | BIT(3));
+
+	/* Disable the CPU and main peripheral power rails. */
+	axp803_clr_8(ON_OFF_CTRL_REG1, GENMASK(2, 0));
+}
+
+bool
+axp803_irq(void)
+{
+	uint8_t status;
+
+	/* Only check IRQs if the system is suspended. */
+	if (system_state != SYSTEM_SUSPEND)
+		return false;
+
+	/* Power off the system if the PMIC overheats. */
+	status = r_rsb_read(AXP803_RSB_RTADDR, IRQ_STAT_REG4);
+	if (status & BIT(7))
+		axp803_shutdown();
+
+	/* Resume the system if the power button is pressed. */
+	status = r_rsb_read(AXP803_RSB_RTADDR, IRQ_STAT_REG5);
+	if (status & BIT(5)) {
+		r_rsb_write(AXP803_RSB_RTADDR, IRQ_STAT_REG5, BIT(5));
+		system_resume();
 	}
+
+	return true;
+}
+
+void
+axp803_init(void)
+{
+	/* Switch the PMIC to RSB mode. */
+	r_rsb_init_pmic(RSB_RTADDR(AXP803_RSB_RTADDR) | AXP803_RSB_HWADDR,
+	                AXP803_MODE_REG, AXP803_MODE_VAL);
+
+	/* Set the power key power-off IRQ threshold to 4s. */
+	axp803_clr_8(POWER_KEY_CTRL_REG, GENMASK(1, 0));
 
 	/* Enable shutdown on PMIC overheat or >16 seconds button press;
 	 * remember previous voltages when waking up from suspend. */
-	if ((err = axp803_reg_setbits(dev, PIN_FUNCTION_REG, GENMASK(3, 1))))
-		return err;
-
-	/* Register the NMI IRQ handler. */
-	return dm_setup_irq(dev, axp803_pmic_irq);
+	axp803_set_8(FUNCTION_CTRL_REG, GENMASK(3, 1));
 }
-
-const struct pmic_driver axp803_pmic_driver = {
-	.drv = {
-		.class = DM_CLASS_PMIC,
-		.probe = axp803_pmic_probe,
-	},
-	.ops = {
-		.reset    = axp803_pmic_reset,
-		.shutdown = axp803_pmic_shutdown,
-		.suspend  = axp803_pmic_suspend,
-		.wakeup   = axp803_pmic_wakeup,
-	},
-};

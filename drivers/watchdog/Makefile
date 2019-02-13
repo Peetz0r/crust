@@ -3,4 +3,4 @@
 # SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-only
 #
 
-obj-y += sunxi-twd.o
+obj-y += r_twd.o

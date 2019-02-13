@@ -3,42 +3,60 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-only
  */
 
-#include <compiler.h>
-#include <console.h>
 #include <debug.h>
-#include <dm.h>
-#include <monitoring.h>
+#include <exception.h>
+#include <irqf.h>
 #include <scpi.h>
+#include <spr.h>
 #include <stdbool.h>
-#include <watchdog.h>
-#include <work.h>
-#include <platform/devices.h>
-#include <platform/time.h>
+#include <stdint.h>
+#include <system.h>
+#include <drivers/clock/ccu.h>
+#include <drivers/clock/r_prcm.h>
+#include <drivers/css/css.h>
+#include <drivers/gpio/r_pio.h>
+#include <drivers/irqchip/r_intc.h>
+#include <drivers/msgbox/msgbox.h>
+#include <drivers/pmic/pmic.h>
+#include <drivers/rsb/r_rsb.h>
+#include <drivers/watchdog/r_twd.h>
 
-#define WDOG_TIMEOUT (5 * REFCLK_HZ) /* 5 seconds */
-
-noreturn void main(void);
-
+/**
+ * Main entry point. Performs setup and then enters an event loop.
+ */
 noreturn void
-main(void)
+main(uint32_t exception)
 {
-	struct device *watchdog;
-
-	console_init(DEV_UART0);
-	dm_init();
-	start_monitoring();
-
-	/* Enable watchdog. */
-	if ((watchdog = dm_first_dev_by_class(DM_CLASS_WATCHDOG))) {
-		watchdog_enable(watchdog, WDOG_TIMEOUT);
-		info("Trusted watchdog enabled");
+	if (exception <= TRAP_EXCEPTION) {
+		debugSXSX("Reset by exception ", exception, " at ",
+		          mfspr(SPR_SYS_EPCR_INDEX(0)));
 	}
 
-	/* Do this last, as it tells SCPI clients we are finished booting. */
+	/* Initialize RTC block hardware devices. */
+	r_prcm_init();
+	r_twd_init();
+	r_intc_init();
+	r_pio_init();
+	r_rsb_init();
+
+	/* Initialize normal block hardware devices. */
+	ccu_init();
+	msgbox_init();
+
+	/* Initialize external hardware devices. */
+	pmic_init();
+
+	/* Initialize the system power state machine. Assume that if the system
+	 * is already booted, some secondary CPUs will have been turned on. */
+	system_state = css_get_online_cores(0) == 1
+	               ? SYSTEM_BOOT
+	               : SYSTEM_RUNTIME;
+
+	/* Initialize services. */
+	irqf_init();
 	scpi_init();
 
-	while (true) {
-		/* Process work queue ad infinitum. */
-		process_work();
-	}
+	do {
+		r_twd_restart();
+	} while (true);
 }

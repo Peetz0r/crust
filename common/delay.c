@@ -3,32 +3,21 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-only
  */
 
-#include <debug.h>
 #include <delay.h>
 #include <limits.h>
+#include <platform.h>
+#include <stdbool.h>
 #include <stdint.h>
-#include <wallclock.h>
-#include <platform/time.h>
-
-/**
- * Spin (do nothing) for at least the given number of reference clock cycles.
- *
- * @param The number of cycles to delay for.
- */
-static void
-delay_cycles(uint32_t cycles)
-{
-	uint64_t start = wallclock_read();
-
-	while (wallclock_read() < start + cycles) {
-		/* Wait for time to pass. */
-	}
-}
+#include <drivers/watchdog/r_twd.h>
 
 void
-udelay(uint32_t useconds)
+udelay(uint32_t micros)
 {
-	assert(useconds < UINT32_MAX / REFCLK_MHZ);
+	uint32_t start = r_twd_read_counter();
+	uint32_t msb   = start & 0x80000000U;
+	uint32_t end   = (start ^ msb) + CLK_MHZ * micros;
 
-	delay_cycles(REFCLK_MHZ * useconds);
+	while ((r_twd_read_counter() ^ msb) < end) {
+		/* Do nothing. */
+	}
 }

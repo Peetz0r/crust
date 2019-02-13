@@ -3,47 +3,39 @@
  * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-only
  */
 
-#include <platform/memory.h>
+#include <memory.h>
 
 OUTPUT_ARCH(or1k)
 OUTPUT_FORMAT(elf32-or1k)
 
-ENTRY (start)
+ENTRY (reset)
 
 MEMORY {
-  VECTORS (rwx): ORIGIN = VECTORS_BASE, LENGTH = VECTORS_SIZE
   SRAM_A2 (rwx): ORIGIN = SRAM_A2_BASE, LENGTH = SRAM_A2_SIZE
 }
 
 SECTIONS
 {
-  ASSERT(FIRMWARE_BASE >= SRAM_A2_BASE,
-         "Firmware must be placed in SRAM A2")
-  ASSERT(FIRMWARE_BASE + FIRMWARE_SIZE <= SRAM_A2_BASE + SRAM_A2_SIZE,
-         "Firmware must be placed in SRAM A2")
+  ASSERT(FIRMWARE_BASE >= SRAM_A2_BASE, "Firmware must be placed in SRAM A2")
 
-  . = VECTORS_BASE;
-
-  .vectors . : {
-    KEEP(*(.vectors))
-  } >VECTORS
-
-  ASSERT(. <= VECTORS_BASE + VECTORS_SIZE, "Vectors overflow")
   . = FIRMWARE_BASE;
 
   .text . : ALIGN(4) {
+    KEEP(*(.text.exception))
     *(SORT_BY_ALIGNMENT(SORT_BY_NAME(.text*)))
     . = ALIGN(4);
   } >SRAM_A2
 
-  .data . : ALIGN(4) {
-    device_list = .;
-    KEEP(*(.device))
-    device_list_end = .;
+  .rodata . : ALIGN(4) {
     *(SORT_BY_ALIGNMENT(SORT_BY_NAME(.rodata*)))
-    *(SORT_BY_ALIGNMENT(SORT_BY_NAME(.data*)))
     . = ALIGN(4);
   } >SRAM_A2
+
+  .data . : ALIGN(4) {
+    *(.data*)
+  } >SRAM_A2
+
+  ASSERT(SIZEOF(.data) == 0, "Global data must be constant or set at runtime")
 
   .bss . : ALIGN(4) {
     __bss_start = .;
@@ -52,7 +44,14 @@ SECTIONS
     __bss_end = .;
   } >SRAM_A2
 
-  ASSERT(. <= STACK_BASE, "Firmware overflows into stack")
+  __stack_start = .;
+  . += STACK_SIZE;
+  __stack_end = .;
+
+  ASSERT(. <= SCPI_MEM_BASE, "Firmware overflows into SCPI shared memory")
+  ASSERT(. <= SRAM_A2_BASE + SRAM_A2_SIZE, "Firmware overflows SRAM A2")
+
+  __scpi_mem = SCPI_MEM_BASE;
 
   /DISCARD/ : {
     *(.comment*)

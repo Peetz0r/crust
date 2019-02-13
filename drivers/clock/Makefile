@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-only
 #
 
-obj-y += clock.o
+obj-y += ccu.o
 
-obj-y += sunxi-ccu.o
+obj-$(CONFIG_PLATFORM_A64) += ccu-a64.o
+obj-$(CONFIG_PLATFORM_A64) += r_prcm-a64.o
