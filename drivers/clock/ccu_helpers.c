@@ -5,11 +5,13 @@
 
 #include <bitfield.h>
 #include <counter.h>
+#include <debug.h>
 #include <mmio.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <util.h>
 #include <watchdog/sunxi-twd.h>
+#include <platform/devices.h>
 #include <platform/time.h>
 
 #include "ccu.h"
@@ -17,17 +19,44 @@
 #define PLL_CTRL_REG1_KEY  (0xa7 << 24)
 #define PLL_CTRL_REG1_MASK GENMASK(2, 0)
 
+#define THS0_DATA_REG          0x80
+#define THS1_DATA_REG          0x84
+#define THS2_DATA_REG          0x88
+
+#define THS_CTL_REG0           0x00
+#define THS_CTL_REG1           0x04
+#define THS_CTL_REG2           0x40
+
+#define THS_FILTER_CONTROL_REG 0x70
+
+static bool once;
+
 void
 ccu_helper_calibrate_osc16m(const uint32_t *rate)
 {
 	uint32_t after, before, end, now;
+
+	if (!once) {
+		mmio_set_32(DEV_CCU + 0x0068, BIT(8));
+		mmio_set_32(DEV_CCU + 0x02d0, BIT(8));
+		mmio_write_32(DEV_CCU + 0x0074, BIT(31));
+		mmio_write_32(DEV_THS + THS_CTL_REG1, BIT(17));
+#ifndef CONFIG_SOC_H5
+		while (mmio_read_32(DEV_THS + THS_CTL_REG1) & BIT(17)) {}
+#endif
+		mmio_write_32(DEV_THS + THS_CTL_REG0, 0x257);
+		mmio_write_32(DEV_THS + THS_CTL_REG2, 0x257 << 16);
+		mmio_write_32(DEV_THS + THS_FILTER_CONTROL_REG, 0x06);
+		mmio_set_32(DEV_THS + THS_CTL_REG2, BIT(0));
+		once = 1;
+	}
 
 	/* Cycle until the interval will not span a counter wraparound. */
 	do {
 		before = counter_read();
 		barrier();
 		now = r_twd_counter_read();
-		end = now + (REFCLK_HZ >> 9);
+		end = now + (REFCLK_HZ >> 7);
 	} while (end < now);
 
 	/* Cycle until the end of the interval. */
@@ -47,7 +76,10 @@ ccu_helper_calibrate_osc16m(const uint32_t *rate)
 	 * the value needs to be preserved in case of an exception restart
 	 * during SYSTEM_INACTIVE/OFF, where r_ccu_init() does not get called.
 	 */
-	mmio_write_32((uintptr_t)rate, (after - before) << 9);
+	mmio_write_32((uintptr_t)rate, (after - before) << 7);
+
+	uint32_t temp = mmio_read_32(DEV_THS + THS0_DATA_REG) & GENMASK(11, 0);
+	info("temp %08x freq %d", temp, *rate);
 }
 
 static void

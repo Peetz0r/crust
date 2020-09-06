@@ -25,6 +25,7 @@
 #include <gpio/sunxi-gpio.h>
 #include <msgbox/sunxi-msgbox.h>
 #include <watchdog/sunxi-twd.h>
+#include "../drivers/clock/ccu.h"
 
 static uint8_t system_state;
 
@@ -105,6 +106,7 @@ system_state_machine(uint32_t exception)
 		                    SCPI_CMD_SCP_READY);
 	}
 
+	uint32_t dummy, x = 0;
 	for (;;) {
 		switch (system_state) {
 		case SYSTEM_ACTIVE:
@@ -115,6 +117,9 @@ system_state_machine(uint32_t exception)
 			/* Poll runtime services. */
 			if (mailbox)
 				scpi_poll(mailbox);
+
+			if ((++x % 0x100000) == 0)
+				ccu_helper_calibrate_osc16m(&dummy);
 
 			/*
 			 * Skip debugging hooks while the system is active,
