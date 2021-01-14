@@ -6,12 +6,21 @@
 #include <debug.h>
 #include <division.h>
 #include <regmap.h>
+#include <scpi.h>
 #include <stdint.h>
 #include <timeout.h>
 #include <util.h>
 #include <mfd/axp20x.h>
 
+#define MAGIC 0xf00f0ff0
+
 #define MEASUREMENT_INTERVAL (30 * USEC_PER_SEC) /* 30s */
+
+extern struct scpi_mem __scpi_mem[SCPI_CLIENTS];
+
+extern uint32_t __stack_end[];
+
+static uint32_t *cursor;
 
 static uint32_t timeout;
 
@@ -45,6 +54,11 @@ debug_print_battery(void)
 	if (regmap_read(map, 0x7d, &lo))
 		goto err_put_mfd;
 	current = (hi << 4) | (lo & 0xf);
+
+	if (!cursor || (uintptr_t)cursor + 4 >= (uintptr_t)__scpi_mem)
+		cursor = __stack_end;
+	*cursor++ = voltage << 16 | current;
+	*cursor = MAGIC;
 
 	info("Using %u mW (%u mA @ %u mV)",
 	     udiv_round(current * voltage, 1000), current, voltage);
