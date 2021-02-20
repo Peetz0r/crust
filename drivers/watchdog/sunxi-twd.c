@@ -22,7 +22,7 @@
 
 #define TWD_RESTART_KEY (0xD14 << 16)
 
-#define TWD_TIMEOUT     (5 * REFCLK_HZ) /* 5 seconds */
+#define TWD_TIMEOUT     (30 * REFCLK_HZ) /* 5 seconds */
 
 static void
 sunxi_twd_restart(const struct device *dev)
