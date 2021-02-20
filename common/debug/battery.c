@@ -14,7 +14,7 @@
 
 #define MAGIC 0xf00f0ff0
 
-#define MEASUREMENT_INTERVAL (30 * USEC_PER_SEC) /* 30s */
+#define MEASUREMENT_INTERVAL (5 * USEC_PER_SEC) /* 5s */
 
 extern struct scpi_mem __scpi_mem[SCPI_CLIENTS];
 
