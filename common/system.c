@@ -215,7 +215,7 @@ system_state_machine(uint32_t exception)
 			 */
 			device_put(pmic);
 
-			debug("Suspend to %d complete!", suspend_depth);
+			info("Suspend to %d complete!", suspend_depth);
 
 			/* The system is now off or asleep. */
 			system_state = NEXT_STATE;
