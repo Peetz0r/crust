@@ -9,6 +9,8 @@
 
 #include "uart.h"
 
+uint32_t baud = CONFIG_SERIAL_BAUD;
+
 static int
 uart_probe(const struct device *dev)
 {
@@ -18,9 +20,9 @@ uart_probe(const struct device *dev)
 	if ((err = simple_device_probe(dev)))
 		return err;
 
-	if (CONFIG_SERIAL_BAUD) {
+	if (baud) {
 		uint32_t  rate    = clock_get_rate(&self->clock);
-		uint32_t  divisor = udiv_round(rate, 16 * CONFIG_SERIAL_BAUD);
+		uint32_t  divisor = udiv_round(rate, 16 * baud);
 		uintptr_t regs    = self->regs;
 
 		/* Set the clock divisor. */

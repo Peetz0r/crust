@@ -53,5 +53,5 @@ serial_ready(void)
 	if (active)
 		clock_enable(&uart.clock);
 
-	return active || CONFIG_SERIAL_BAUD == 0;
+	return active;
 }

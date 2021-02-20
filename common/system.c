@@ -29,6 +29,9 @@
 
 #define NEXT_STATE (system_state + 2)
 
+extern const struct simple_device uart;
+extern uint32_t baud;
+
 /**
  * The enumeration of possible system states.
  *
@@ -173,7 +176,10 @@ system_state_machine(uint32_t exception)
 
 			/* Configure the SoC for minimal power consumption. */
 			dram_suspend();
+			device_put(&uart.dev);
 			ccu_suspend();
+			baud = 300;
+			device_get(&uart.dev);
 
 			/*
 			 * Disable watchdog protection. Once devices outside
