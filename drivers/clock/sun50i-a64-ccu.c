@@ -36,12 +36,34 @@
 
 static DEFINE_FIXED_RATE(ccu_get_pll_periph0_rate, 600000000U)
 
-/*
- * While APB2 has a mux, assume its parent is OSC24M. Reparenting APB2
- * to PLL_PERIPH0 in Linux for faster UART clocks is unsupported.
- */
-static DEFINE_FIXED_PARENT(ccu_get_apb2_parent, r_ccu, CLK_OSC24M)
 static DEFINE_FIXED_PARENT(ccu_get_apb2, ccu, CLK_APB2)
+
+static const struct clock_handle ccu_apb2_parents[] = {
+	{
+		.dev = &r_ccu.dev,
+		.id  = CLK_OSC32K,
+	},
+	{
+		.dev = &r_ccu.dev,
+		.id  = CLK_OSC24M,
+	},
+	{
+		.dev = &ccu.dev,
+		.id  = CLK_PLL_PERIPH0, /* 2x */
+	},
+	{
+		.dev = &ccu.dev,
+		.id  = CLK_PLL_PERIPH0, /* 2x */
+	},
+};
+
+static const struct clock_handle *
+ccu_get_apb2_parent(const struct ccu *self, const struct ccu_clock *clk)
+{
+	uint32_t val = mmio_read_32(self->regs + clk->reg);
+
+	return &ccu_apb2_parents[bitfield_get(val, 24, 2)];
+}
 
 static const struct clock_handle ccu_dram_parents[] = {
 	{
@@ -207,6 +229,12 @@ ccu_suspend(void)
 	/* Set AHB2 to AHB1/1 (32kHz). */
 	mmio_write_32(DEV_CCU + AHB2_CFG_REG,
 	              AHB2_CLK_SRC(0));
+
+	/* Set APB2 to LOSC/1 (32kHz). */
+	mmio_write_32(DEV_CCU + APB2_CFG_REG,
+	              APB2_CLK_SRC(0) |
+	              APB2_CLK_P(0) |
+	              APB2_CLK_M(0));
 }
 
 void
@@ -230,6 +258,12 @@ ccu_resume(void)
 	/* Set AHB2 to PLL_PERIPH0/2 (300MHz). */
 	mmio_write_32(DEV_CCU + AHB2_CFG_REG,
 	              AHB2_CLK_SRC(1));
+
+	/* Set APB2 to OSC24M/1 (24MHz). */
+	mmio_write_32(DEV_CCU + APB2_CFG_REG,
+	              APB2_CLK_SRC(1) |
+	              APB2_CLK_P(0) |
+	              APB2_CLK_M(0));
 }
 
 void
