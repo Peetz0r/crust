@@ -14,12 +14,28 @@
 static uint32_t rvba;
 
 void
-css_raise_cluster_state(uint32_t cluster UNUSED, uint32_t old_state,
-                        uint32_t new_state UNUSED)
+css_raise_css_state(uint32_t old_state, uint32_t new_state UNUSED)
 {
 	if (old_state == SCPI_CSS_OFF) {
 		/* Deassert the CPU subsystem reset (active-low). */
 		mmio_write_32(CPU_SYS_RESET_REG, CPU_SYS_RESET);
+	}
+}
+
+void
+css_lower_css_state(uint32_t new_state)
+{
+	if (new_state < SCPI_CSS_OFF)
+		return;
+	/* Assert the CPU subsystem reset (active-low). */
+	mmio_write_32(CPU_SYS_RESET_REG, 0);
+}
+
+void
+css_raise_cluster_state(uint32_t cluster UNUSED, uint32_t old_state,
+                        uint32_t new_state UNUSED)
+{
+	if (old_state == SCPI_CSS_OFF) {
 		/* Deassert the cluster hard reset (active-low). */
 		mmio_write_32(C0_PWRON_RESET_REG, C0_PWRON_RESET_REG_nH_RST);
 		/* Deassert DBGPWRDUP for all cores. */
@@ -60,8 +76,6 @@ css_lower_cluster_state(uint32_t cluster UNUSED, uint32_t new_state)
 	mmio_write_32(C0_RST_CTRL_REG, 0);
 	/* Assert all power-on resets (active-low). */
 	mmio_write_32(C0_PWRON_RESET_REG, 0);
-	/* Assert the CPU subsystem reset (active-low). */
-	mmio_write_32(CPU_SYS_RESET_REG, 0);
 }
 
 void
