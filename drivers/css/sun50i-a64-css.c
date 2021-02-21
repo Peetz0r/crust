@@ -16,6 +16,13 @@
 static uint32_t rvba;
 
 void
+css_init(void)
+{
+	/* Program all cores to start in AArch64 mode. */
+	mmio_set_32(C0_CTRL_REG0, C0_CTRL_REG0_AA64nAA32_MASK);
+}
+
+void
 css_raise_css_state(uint32_t old_state, uint32_t new_state UNUSED)
 {
 	if (old_state == SCPI_CSS_OFF) {
@@ -47,6 +54,8 @@ css_raise_cluster_state(uint32_t cluster UNUSED, uint32_t old_state,
 		mmio_write_32(DBG_REG0, 0);
 		/* Assert all cluster and core resets (active-low). */
 		mmio_write_32(C0_RST_CTRL_REG, 0);
+		/* Program all cores to start in AArch64 mode. */
+		mmio_set_32(C0_CTRL_REG0, C0_CTRL_REG0_AA64nAA32_MASK);
 		/* Enable hardware L2 cache flush (active-low). */
 		mmio_clr_32(C0_CTRL_REG0, C0_CTRL_REG0_L2RSTDISABLE);
 		/* Put the cluster back into coherency (deassert ACINACTM). */
@@ -95,8 +104,6 @@ css_raise_core_state(uint32_t cluster UNUSED, uint32_t core,
 		/* Assert core power-on reset (active-low). */
 		mmio_clr_32(C0_PWRON_RESET_REG,
 		            C0_PWRON_RESET_REG_nCPUPORESET(core));
-		/* Program the core to start in AArch64 mode. */
-		mmio_set_32(C0_CTRL_REG0, C0_CTRL_REG0_AA64nAA32(core));
 		/* Core 0 does not have a separate power domain. */
 		if (core > 0) {
 			/* Turn on power to the core power domain. */
