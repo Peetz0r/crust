@@ -65,40 +65,31 @@ css_init(void)
 }
 
 /**
- * Generic implementation used when no platform support is available. Because
- * the generic code does not know how to control the hardware, prohibit changes
- * to the CSS state by default without a platform-specific implementation.
+ * Generic implementation used when no platform support is available.
  */
-int WEAK
+void WEAK
 css_set_css_state(uint32_t state UNUSED)
 {
-	/* Reject any attempts to change CSS, cluster, or core power states. */
-	return SCPI_E_SUPPORT;
+	/* Do nothing. */
 }
 
 /**
- * Generic implementation used when no platform support is available. Because
- * the generic code does not know how to control the hardware, prohibit changes
- * to the cluster state by default without a platform-specific implementation.
+ * Generic implementation used when no platform support is available.
  */
-int WEAK
+void WEAK
 css_set_cluster_state(uint32_t cluster UNUSED, uint32_t state UNUSED)
 {
-	/* Reject any attempts to change CSS, cluster, or core power states. */
-	return SCPI_E_SUPPORT;
+	/* Do nothing. */
 }
 
 /**
- * Generic implementation used when no platform support is available. Because
- * the generic code does not know how to control the hardware, prohibit changes
- * to the core state by default without a platform-specific implementation.
+ * Generic implementation used when no platform support is available.
  */
-int WEAK
+void WEAK
 css_set_core_state(uint32_t cluster UNUSED, uint32_t core UNUSED,
                    uint32_t state UNUSED)
 {
-	/* Reject any attempts to change CSS, cluster, or core power states. */
-	return SCPI_E_SUPPORT;
+	/* Do nothing. */
 }
 
 int
@@ -108,7 +99,6 @@ css_set_power_state(uint32_t cluster, uint32_t core, uint32_t core_state,
 	uint32_t core_old, cluster_old, css_old;
 	uint8_t *core_ps, *cluster_ps, *css_ps;
 	uint8_t *cluster_cores, *css_clusters;
-	int err;
 
 	if (cluster >= css_get_cluster_count())
 		return SCPI_E_PARAM;
@@ -140,21 +130,16 @@ css_set_power_state(uint32_t cluster, uint32_t core, uint32_t core_state,
 	css_old = *css_ps;
 	*css_ps = css_state;
 
-	if (css_state < css_old &&
-	    (err = css_set_css_state(css_state)))
-		return err;
-	if (cluster_state < cluster_old &&
-	    (err = css_set_cluster_state(cluster, cluster_state)))
-		return err;
-	if (core_state != core_old &&
-	    (err = css_set_core_state(cluster, core, core_state)))
-		return err;
-	if (cluster_state > cluster_old &&
-	    (err = css_set_cluster_state(cluster, cluster_state)))
-		return err;
-	if (css_state > css_old &&
-	    (err = css_set_css_state(css_state)))
-		return err;
+	if (css_state < css_old)
+		css_set_css_state(css_state);
+	if (cluster_state < cluster_old)
+		css_set_cluster_state(cluster, cluster_state);
+	if (core_state != core_old)
+		css_set_core_state(cluster, core, core_state);
+	if (cluster_state > cluster_old)
+		css_set_cluster_state(cluster, cluster_state);
+	if (css_state > css_old)
+		css_set_css_state(css_state);
 
 	return SCPI_OK;
 }
