@@ -97,6 +97,7 @@ enum {
 enum {
 	SCPI_CSS_ON        = 0,
 	SCPI_CSS_RETENTION = 1,
+	SCPI_CSS_OFF_IDLE  = 2,
 	SCPI_CSS_OFF       = 3,
 };
 
