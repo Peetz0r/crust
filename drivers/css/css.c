@@ -68,7 +68,7 @@ css_init(void)
  * Generic implementation used when no platform support is available.
  */
 void WEAK
-css_set_css_state(uint32_t state UNUSED)
+css_raise_css_state(uint32_t old_state UNUSED, uint32_t new_state UNUSED)
 {
 	/* Do nothing. */
 }
@@ -77,7 +77,7 @@ css_set_css_state(uint32_t state UNUSED)
  * Generic implementation used when no platform support is available.
  */
 void WEAK
-css_set_cluster_state(uint32_t cluster UNUSED, uint32_t state UNUSED)
+css_lower_css_state(uint32_t new_state UNUSED)
 {
 	/* Do nothing. */
 }
@@ -86,8 +86,37 @@ css_set_cluster_state(uint32_t cluster UNUSED, uint32_t state UNUSED)
  * Generic implementation used when no platform support is available.
  */
 void WEAK
-css_set_core_state(uint32_t cluster UNUSED, uint32_t core UNUSED,
-                   uint32_t state UNUSED)
+css_raise_cluster_state(uint32_t cluster UNUSED, uint32_t old_state UNUSED,
+                        uint32_t new_state UNUSED)
+{
+	/* Do nothing. */
+}
+
+/**
+ * Generic implementation used when no platform support is available.
+ */
+void WEAK
+css_lower_cluster_state(uint32_t cluster UNUSED, uint32_t new_state UNUSED)
+{
+	/* Do nothing. */
+}
+
+/**
+ * Generic implementation used when no platform support is available.
+ */
+void WEAK
+css_raise_core_state(uint32_t cluster UNUSED, uint32_t core UNUSED,
+                     uint32_t old_state UNUSED, uint32_t new_state UNUSED)
+{
+	/* Do nothing. */
+}
+
+/**
+ * Generic implementation used when no platform support is available.
+ */
+void WEAK
+css_lower_core_state(uint32_t cluster UNUSED, uint32_t core UNUSED,
+                     uint32_t new_state UNUSED)
 {
 	/* Do nothing. */
 }
@@ -131,15 +160,17 @@ css_set_power_state(uint32_t cluster, uint32_t core, uint32_t core_state,
 	*css_ps = css_state;
 
 	if (css_state < css_old)
-		css_set_css_state(css_state);
+		css_raise_css_state(css_old, css_state);
 	if (cluster_state < cluster_old)
-		css_set_cluster_state(cluster, cluster_state);
-	if (core_state != core_old)
-		css_set_core_state(cluster, core, core_state);
+		css_raise_cluster_state(cluster, cluster_old, cluster_state);
+	if (core_state < core_old)
+		css_raise_core_state(cluster, core, core_old, core_state);
+	if (core_state > core_old)
+		css_lower_core_state(cluster, core, core_state);
 	if (cluster_state > cluster_old)
-		css_set_cluster_state(cluster, cluster_state);
+		css_lower_cluster_state(cluster, cluster_state);
 	if (css_state > css_old)
-		css_set_css_state(css_state);
+		css_lower_css_state(css_state);
 
 	return SCPI_OK;
 }

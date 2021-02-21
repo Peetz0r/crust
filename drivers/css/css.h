@@ -28,31 +28,73 @@ extern struct power_state power_state;
 uint32_t css_get_core_count(uint32_t cluster) ATTRIBUTE(const);
 
 /**
- * Set the state of the compute subsystem (CSS). This state must not be
- * numbered higher than the lowest cluster state in the CSS.
+ * Raise the state of the compute subsystem (CSS). The new state will always be
+ * shallower than the previous state, and at least as shallow as the shallowest
+ * cluster state in the CSS.
  *
- * @param state The coordinated requested state for the CSS.
+ * @param old_state The previous coordinated state for the CSS.
+ * @param new_state The new, shallower coordinated state for the CSS.
  */
-void css_set_css_state(uint32_t state);
+void css_raise_css_state(uint32_t old_state, uint32_t new_state);
 
 /**
- * Set the state of a cluster. This state must not be numbered lower than the
- * CSS state, nor higher than the lowest core state for this cluster.
+ * Lower the state of the compute subsystem (CSS). The new state will always be
+ * deeper than the previous state, and at least as shallow as the shallowest
+ * cluster state in the CSS.
  *
- * @param cluster The index of the cluster.
- * @param state   The coordinated requested state for the cluster.
+ * Note: Lowering the state only makes sense if the previous state was "on".
+ *
+ * @param new_state The new, deeper coordinated state for the CSS.
  */
-void css_set_cluster_state(uint32_t cluster, uint32_t state);
+void css_lower_css_state(uint32_t new_state);
 
 /**
- * Set the state of a CPU core. This state must not be numbered lower than the
- * core's cluster state.
+ * Raise the state of a cluster. The new state will always be shallower than
+ * the previous state, and at least as shallow as the shallowest core state in
+ * this cluster.
  *
- * @param cluster The index of the cluster.
- * @param core    The index of the core within the cluster.
- * @param state   The coordinated requested state for the CPU core.
+ * @param cluster   The index of the cluster.
+ * @param old_state The previous coordinated state for this cluster.
+ * @param new_state The new, shallower coordinated state for this cluster.
  */
-void css_set_core_state(uint32_t cluster, uint32_t core, uint32_t state);
+void css_raise_cluster_state(uint32_t cluster, uint32_t old_state,
+                             uint32_t new_state);
+
+/**
+ * Lower the state of a cluster. The new state will always be deeper than
+ * the previous state, and at least as shallow as the shallowest core state in
+ * this cluster.
+ *
+ * Note: Lowering the state only makes sense if the previous state was "on".
+ *
+ * @param cluster   The index of the cluster.
+ * @param new_state The new, deeper coordinated state for this cluster.
+ */
+void css_lower_cluster_state(uint32_t cluster, uint32_t new_state);
+
+/**
+ * Raise the state of a CPU core. The new state will always be shallower than
+ * the previous state.
+ *
+ * @param cluster   The index of the cluster.
+ * @param core      The index of the core within the cluster.
+ * @param old_state The previous coordinated state for this core.
+ * @param new_state The new, shallower coordinated state for this core.
+ */
+void css_raise_core_state(uint32_t cluster, uint32_t core, uint32_t old_state,
+                          uint32_t new_state);
+
+/**
+ * Lower the state of a CPU core. The new state will always be deeper than
+ * the previous state.
+ *
+ * Note: Lowering the state only makes sense if the previous state was "on".
+ *
+ * @param cluster   The index of the cluster.
+ * @param core      The index of the core within the cluster.
+ * @param new_state The new, deeper coordinated state for this core.
+ */
+void css_lower_core_state(uint32_t cluster, uint32_t core, uint32_t new_state);
 
 /**
  * Enable or disable power to a core or cluster power domain.

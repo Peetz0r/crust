@@ -14,9 +14,10 @@
 static uint32_t rvba;
 
 void
-css_set_cluster_state(uint32_t cluster UNUSED, uint32_t state)
+css_raise_cluster_state(uint32_t cluster UNUSED, uint32_t old_state,
+                        uint32_t new_state UNUSED)
 {
-	if (state == SCPI_CSS_ON) {
+	if (old_state == SCPI_CSS_OFF) {
 		/* Deassert the CPU subsystem reset (active-low). */
 		mmio_write_32(CPU_SYS_RESET_REG, CPU_SYS_RESET);
 		/* Deassert the cluster hard reset (active-low). */
@@ -34,7 +35,13 @@ css_set_cluster_state(uint32_t cluster UNUSED, uint32_t state)
 		/* Restore the reset vector base addresses for all cores. */
 		for (uint32_t i = 0; i < css_get_core_count(cluster); ++i)
 			mmio_write_32(RVBA_LO_REG(i), rvba);
-	} else if (state == SCPI_CSS_OFF) {
+	}
+}
+
+void
+css_lower_cluster_state(uint32_t cluster UNUSED, uint32_t new_state)
+{
+	if (new_state == SCPI_CSS_OFF) {
 		/* Save the power-on reset vector base address from core 0. */
 		rvba = mmio_read_32(RVBA_LO_REG(0));
 		/* Assert L2FLUSHREQ to clean the cluster L2 cache. */
@@ -58,9 +65,10 @@ css_set_cluster_state(uint32_t cluster UNUSED, uint32_t state)
 }
 
 void
-css_set_core_state(uint32_t cluster UNUSED, uint32_t core, uint32_t state)
+css_raise_core_state(uint32_t cluster UNUSED, uint32_t core,
+                     uint32_t old_state, uint32_t new_state UNUSED)
 {
-	if (state == SCPI_CSS_ON) {
+	if (old_state == SCPI_CSS_OFF) {
 		/* Assert core reset (active-low). */
 		mmio_clr_32(C0_RST_CTRL_REG, C0_RST_CTRL_REG_nCORERESET(core));
 		/* Assert core power-on reset (active-low). */
@@ -79,7 +87,14 @@ css_set_core_state(uint32_t cluster UNUSED, uint32_t core, uint32_t state)
 		mmio_set_32(C0_RST_CTRL_REG, C0_RST_CTRL_REG_nCORERESET(core));
 		/* Assert DBGPWRDUP (allow debug access to the core). */
 		mmio_set_32(DBG_REG0, DBG_REG0_DBGPWRDUP(core));
-	} else if (state == SCPI_CSS_OFF) {
+	}
+}
+
+void
+css_lower_core_state(uint32_t cluster UNUSED, uint32_t core,
+                     uint32_t new_state)
+{
+	if (new_state == SCPI_CSS_OFF) {
 		/* Wait for the core to be in WFI and ready to shut down. */
 		mmio_poll_32(C0_CPU_STATUS_REG,
 		             C0_CPU_STATUS_REG_STANDBYWFI(core));

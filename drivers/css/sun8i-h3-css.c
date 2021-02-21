@@ -12,9 +12,10 @@
 #include "css.h"
 
 void
-css_set_core_state(uint32_t cluster UNUSED, uint32_t core, uint32_t state)
+css_raise_core_state(uint32_t cluster UNUSED, uint32_t core,
+                     uint32_t old_state, uint32_t new_state UNUSED)
 {
-	if (state == SCPI_CSS_ON) {
+	if (old_state == SCPI_CSS_OFF) {
 		/* Assert core reset and power-on reset (active-low). */
 		mmio_write_32(CPUn_RST_CTRL_REG(core), 0);
 		/* Enable hardware L1 cache flush (active-low). */
@@ -29,7 +30,14 @@ css_set_core_state(uint32_t cluster UNUSED, uint32_t core, uint32_t state)
 		              CPUn_RST_CTRL_REG_nCPUPORESET);
 		/* Assert DBGPWRDUP (allow debug access to the core). */
 		mmio_set_32(DBG_CTRL_REG1, DBG_CTRL_REG1_DBGPWRDUP(core));
-	} else if (state == SCPI_CSS_OFF) {
+	}
+}
+
+void
+css_lower_core_state(uint32_t cluster UNUSED, uint32_t core,
+                     uint32_t new_state)
+{
+	if (new_state == SCPI_CSS_OFF) {
 		/* Wait for the core to be in WFI and ready to shut down. */
 		mmio_poll_32(CPUn_STATUS_REG(core),
 		             CPUn_STATUS_REG_STANDBYWFI);
