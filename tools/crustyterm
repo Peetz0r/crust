@@ -440,9 +440,12 @@ class Miniterm(object):
     def reader(self):
         """loop and copy serial->console"""
         try:
+            crustyterm_linebuffer = b''
             while self.alive and self._reader_alive:
                 # read all that is there or wait for one byte
-                data = self.serial.read(self.serial.in_waiting or 1)
+                # ~ data = self.serial.read(self.serial.in_waiting or 1)
+                data = self.serial.read(1)
+                crustyterm_linebuffer += data
                 if data:
                     if self.raw:
                         self.console.write_bytes(data)
@@ -451,6 +454,16 @@ class Miniterm(object):
                         for transformation in self.rx_transformations:
                             text = transformation.rx(text)
                         self.console.write(text)
+
+                    if crustyterm_linebuffer == b'SCP/INF: Suspending...':
+                        self.serial.baudrate = 300
+                        self.console.write('\n\n\x1b[32mSet serial to 300 baud\x1b[0m\n')
+                    elif crustyterm_linebuffer == b'SCP/INF: Resuming...':
+                        self.serial.baudrate = 115200
+                        self.console.write('\n\n\x1b[32mSet serial to 115200 baud\x1b[0m\n')
+                    elif data == b'\n':
+                        crustyterm_linebuffer = b''
+
         except serial.SerialException:
             self.alive = False
             self.console.cancel()
