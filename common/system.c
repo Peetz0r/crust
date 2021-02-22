@@ -162,7 +162,7 @@ system_state_machine(uint32_t exception)
 			break;
 		case SS_SHUTDOWN:
 		case SS_SUSPEND:
-			debug("Suspending...");
+			info("Suspending...");
 
 			/* Release runtime-only devices. */
 			device_put(mailbox), mailbox = NULL;
@@ -266,7 +266,7 @@ system_state_machine(uint32_t exception)
 			system_state = NEXT_STATE;
 			break;
 		case SS_RESUME:
-			debug("Resuming...");
+			info("Resuming...");
 
 			/* Configure the SoC for full functionality. */
 			ccu_resume();
@@ -282,7 +282,7 @@ system_state_machine(uint32_t exception)
 			css_set_power_state(0, 0, SCPI_CSS_ON,
 			                    SCPI_CSS_ON, SCPI_CSS_ON);
 
-			debug("Resume complete!");
+			info("Resume complete!");
 
 			/* The system is now awake. */
 			system_state = SS_AWAKE;
